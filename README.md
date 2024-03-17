@@ -5,4 +5,6 @@ Components :
 
   2. Creating Dockerfiles for each application - Go, Next.js (TypeScript), and the WordPress site inside individual directories
 
-  3. Docker compose file to include services for Go, Next.js, and WordPress and ensuring that the Compose file can be used to spin up the entire extended application stack locally.
+  3. Docker compose file to include services for Go, Next.js, and WordPress and ensure that the Compose file can be used to spin up the entire extended application stack locally.
+
+Note - Some of the parameters like SQL credentials for PHP application, Docker repository credentials, and application's path are not initialized. 
