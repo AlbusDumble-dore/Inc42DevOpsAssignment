@@ -1,0 +1,83 @@
+version: 2.1
+
+jobs:
+  lint_and_test_php:
+    docker:
+      - image: php:latest
+    steps:
+      - checkout
+      - run:
+          name: Install PHP_CodeSniffer
+          command: |
+            pear install PHP_CodeSniffer
+
+      - run:
+          name: Lint PHP code with PHPCS
+          command: |
+            phpcs --standard=WordPress ./path/to/wordpress/component
+
+      - run:
+          name: Run PHP unit tests
+          command: phpunit
+
+  lint_and_test_go:
+    docker:
+      - image: golang:latest
+    steps:
+      - checkout
+      - run:
+          name: Install GolangCI-Lint
+          command: |
+            curl -sSfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.42.1
+
+      - run:
+          name: Lint Go code with GolangCI-Lint
+          command: golangci-lint run ./path/to/go/component
+
+      - run:
+          name: Run Go unit tests
+          command: go test ./path/to/go/component
+
+  lint_and_test_nextjs:
+    docker:
+      - image: node:latest
+    steps:
+      - checkout
+      - run:
+          name: Install ESLint and Prettier
+          command: |
+            npm install eslint prettier eslint-config-prettier eslint-plugin-prettier --save-dev
+
+      - run:
+          name: Lint and format TypeScript code with ESLint and Prettier
+          command: npx eslint --ext .js,.jsx,.ts,.tsx . --fix
+
+      - run:
+          name: Run Next.js unit tests
+          command: npm test
+
+workflows:
+  version: 2
+  php_workflow:
+    jobs:
+      - lint_and_test_php:
+          filters:
+            branches:
+              only:
+                - feature/*
+
+  go_workflow:
+    jobs:
+      - lint_and_test_go:
+          filters:
+            branches:
+              only:
+                - feature/*
+
+  nextjs_workflow:
+    jobs:
+      - lint_and_test_nextjs:
+          filters:
+            branches:
+              only:
+                - feature/*
