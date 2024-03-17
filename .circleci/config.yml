@@ -56,28 +56,95 @@ jobs:
           name: Run Next.js unit tests
           command: npm test
 
+  # Job to deploy the Go application to staging environment
+  deploy_staging_go:
+    docker:
+      - image: docker:latest
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push Go Docker image to staging
+          command: |
+            docker build -t my-go-app ./path/to/go-application
+            docker tag my-go-app my-registry/my-go-app:staging
+            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            docker push my-registry/my-go-app:staging
+
+  # Job to deploy the Next.js (TypeScript) application to staging environment
+  deploy_staging_nextjs:
+    docker:
+      - image: docker:latest
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push Next.js Docker image to staging
+          command: |
+            docker build -t my-nextjs-app ./path/to/nextjs-application
+            docker tag my-nextjs-app my-registry/my-nextjs-app:staging
+            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            docker push my-registry/my-nextjs-app:staging
+
+  # Job to deploy the WordPress component to staging environment
+  deploy_staging_php:
+    docker:
+      - image: docker:latest
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push WordPress Docker image to staging
+          command: |
+            # Step 1: Copy WordPress files to server
+            rsync -avz --exclude='wp-config.php' ./path/to/wordpress-site/ user@staging-server:/var/www/html/
+
+            # Step 2: Import database to staging server
+            ssh user@staging-server 'mysql -u DB_USER -pDB_PASSWORD DB_NAME < /path/to/exported-db.sql'
+
+            # Step 3: Update wp-config.php with staging environment settings
+            ssh user@staging-server 'sed -i "s/\('DB_NAME', '\).*\(');\)/\1DB_NAME\2/g" /var/www/html/wp-config.php'
+            ssh user@staging-server 'sed -i "s/\('DB_USER', '\).*\(');\)/\1DB_USER\2/g" /var/www/html/wp-config.php'
+            ssh user@staging-server 'sed -i "s/\('DB_PASSWORD', '\).*\(');\)/\1DB_PASSWORD\2/g" /var/www/html/wp-config.php'
+            ssh user@staging-server 'sed -i "s/\('DB_HOST', '\).*\(');\)/\1DB_HOST\2/g" /var/www/html/wp-config.php'
+
+            # Step 4: Test the deployment
+            ssh user@staging-server 'curl -I http://staging.example.com'
+
 workflows:
   version: 2
-  php_workflow:
-    jobs:
-      - lint_and_test_php:
-          filters:
-            branches:
-              only:
-                - feature/*
-
-  go_workflow:
+  lint_and_test_workflow:
     jobs:
       - lint_and_test_go:
           filters:
             branches:
               only:
                 - feature/*
-
-  nextjs_workflow:
-    jobs:
       - lint_and_test_nextjs:
           filters:
             branches:
               only:
                 - feature/*
+      - lint_and_test_php:
+          filters:
+            branches:
+              only:
+                - feature/*
+
+  deploy_staging_workflow:
+    jobs:
+      - deploy_staging_go:
+          filters:
+            branches:
+              only:
+                - master
+      - deploy_staging_nextjs:
+          filters:
+            branches:
+              only:
+                - master
+      - deploy_staging_php:
+          filters:
+            branches:
+              only:
+                - master
